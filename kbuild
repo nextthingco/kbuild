@@ -1,0 +1,27 @@
+#!/bin/bash
+
+export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export CONTAINER_IMAGE=kbuild
+
+export CI_JOB_ID=${RANDOM}
+export CI_PIPELINE_ID=${RANDOM}
+
+if [[ ! -z "$1" ]]; then
+    if [[ -f "$1" ]]; then
+        CFG_FILE=$(mktemp)
+        cp "$1" "$CFG_FILE"
+        CFG_FILE_MOUNT="-v $(cd "$(dirname "$CFG_FILE")"; pwd)/$(basename "$CFG_FILE"):/work/kbuild.cfg"
+    else
+        echo "ERROR: configuration file '$1' not found"
+    fi
+fi
+
+#docker pull $CONTAINER_IMAGE
+docker run --rm -it \
+           -e PRIVATE_DEPLOY_KEY="${PRIVATE_DEPLOY_KEY}"  \
+           -e CI_JOB_ID="${CI_JOB_ID}" \
+           -e CI_PIPELINE_ID="${CI_PIPELINE_ID}" \
+           -v $SCRIPT_DIR:/opt/kbuild \
+           -v $PWD:/work -w /work \
+           $CFG_FILE_MOUNT \
+           $CONTAINER_IMAGE /bin/bash -c "/opt/kbuild/kbuild.sh"
