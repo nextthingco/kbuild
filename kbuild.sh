@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -ex
+set -e
 
 function read_cfg_file() {
   local config_file="$1"

@@ -1,27 +1,58 @@
 #!/bin/bash
+##===========================================================================
+#%
+#% USAGE: kbuild [options] [config file]
+#%
+#% The kbuild script is a convenient wrapper running the kbuild.sh script
+#% inside a Docker container.
+#%
+#% If no configuration file is passed as argument is given, it looks for a 
+#% file named kbuild.cfg in curernt directory.
+#%
+#% OPTIONS:
+#%   -h             Show this help
+#%   -v             Show verbose output
+#%
+##===========================================================================
+
+[[ ! -x "$(which docker)" ]] && echo "ERROR: cannot find docker binay in path - please verify Docker installation" && exit 1
+
+while getopts ":hvd:" opt; do
+    case $opt in
+        h)
+            head -n 200 $(basename $0) | sed -n -e 's/^#%//gp;'
+            exit
+            ;;
+        v)
+            export VERBOSE_FLAG="-v"
+            ;;
+        \?)
+            echo "invalid option: -$OPTARG"
+            ;;
+    esac
+done
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export CONTAINER_IMAGE=kbuild
+export CONTAINER_IMAGE=${CONTAINER_IMAGE:-kbuild}
 
 export CI_JOB_ID=${RANDOM}
-export CI_PIPELINE_ID=${RANDOM}
 
-if [[ ! -z "$1" ]]; then
-    if [[ -f "$1" ]]; then
-        CFG_FILE=$(mktemp)
-        cp "$1" "$CFG_FILE"
-        CFG_FILE_MOUNT="-v $(cd "$(dirname "$CFG_FILE")"; pwd)/$(basename "$CFG_FILE"):/work/kbuild.cfg"
-    else
-        echo "ERROR: configuration file '$1' not found"
-    fi
-fi
+# CONFIG_FILE either spacified as environment variable or as first command line parameter
+CONFIG_FILE=${CONFIG_FILE:-$1}
+CONFIG_FILE=${CONFIG_FILE:-kbuild.cfg}
+[[ ! -f "$CONFIG_FILE" ]] && echo "ERROR: cannot find configuration file '$CONFIG_FILE'" && exit 1
+TMP_CFG=$(mktemp)
+cp "$CONFIG_FILE" "$TMP_CFG"
+CFG_FILE_FLAG="-v $(cd "$(dirname "$TMP_CFG")"; pwd)/$(basename "$TMP_CFG"):/work/kbuild.cfg"
 
 #docker pull $CONTAINER_IMAGE
 docker run --rm -it \
            -e PRIVATE_DEPLOY_KEY="${PRIVATE_DEPLOY_KEY}"  \
            -e CI_JOB_ID="${CI_JOB_ID}" \
-           -e CI_PIPELINE_ID="${CI_PIPELINE_ID}" \
            -v $SCRIPT_DIR:/opt/kbuild \
            -v $PWD:/work -w /work \
-           $CFG_FILE_MOUNT \
-           $CONTAINER_IMAGE /bin/bash -c "/opt/kbuild/kbuild.sh"
+           $CFG_FILE_FLAG \
+           $VERBOSE_FLAG \
+           $CONTAINER_IMAGE kbuild.sh
+
+rm $TMP_CFG
