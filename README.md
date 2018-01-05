@@ -19,7 +19,9 @@ The kbuild script has been tested with Docker version 17.12.0-ce.
 
 ## Installation
 
-[...]
+Make sure Docker is installed and in the search PATH - there is plenty of
+information how to do that on the internet, https://docs.docker.com is a good
+start.
 
 
 ## External kernel modules
@@ -47,8 +49,8 @@ configuration file usually named `kconfig.cfg`.
 ### Linux options
  - **LINUX_FLAVOR**: Random flavor name e.g. `chip`
  - **LINUX_DIST**: Debian release e.g. `jessie` or `stretch`
+ - **LINUX_REPO**: Git repository to clone Linux source code from, e.g. git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
  - **LINUX_BRANCH**: Branch of the Linux repository, e.g. `master`
- - **LINUX_REPO**: Git repository to clone CHIP Mali source code from, e.g. git://git.kernel.org/pub/scm/linux/kernel/git/stable/linux-stable.git
  - **LINUX_CONFIG**: e.g. `multi_v7_defconfig`
 
 ### RTL8723 options
