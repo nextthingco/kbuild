@@ -38,11 +38,11 @@ configuration file usually named `kconfig.cfg`
 
 ### Generic options
 
- - _ARCH_: e.g. `arm`
- - `DPKG_ARCH`: e.g. `armhf`
- - `DEBFULLNAME`: Name / Company who builds the .deb packages
- - `DEBEMAIL`: Contact e-mail of the packager
- - `CROSS_COMPILE`: e.g. `arm-linux-gnueabihf-`
+ - **ARCH**: Target architecture, e.g. `arm`, or `arm64`
+ - **DPKG_ARCH**: e.g. `armhf`
+ - **DEBFULLNAME**: Name or Company who builds the .deb packages
+ - **DEBEMAIL**: Contact e-mail of the packager
+ - **CROSS_COMPILE**: Cross compiler toolchain prefix e.g. `arm-linux-gnueabihf-`
 
 ### Linux options
  - `LINUX_FLAVOR`: e.g. "chip"
