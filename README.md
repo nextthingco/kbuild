@@ -85,6 +85,7 @@ If no configuration file is passed as argument is given, it looks for a
 file named kbuild.cfg in curernt directory.
 
 ### OPTIONS:
+| Option       | Description                                     |
 | ------------ | ----------------------------------------------- |
 | -h           | Show help                                       |
 | -v           | Show verbose output                             |
