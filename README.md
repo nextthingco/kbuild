@@ -45,7 +45,7 @@ Currently the following external kernel modules are supported:
 ## Configuration files
 
 The script needs to know certain parameters, e.g. the architecture to build
-and where to find the sources for the kernel and external modules.
+for and where to find the sources for the kernel and external modules.
 These can be specified either as environment variables or be read from a
 configuration file usually named `kconfig.cfg`.
 
@@ -76,21 +76,20 @@ configuration file usually named `kconfig.cfg`.
 ## Usage
 
 ```
- USAGE: kbuild [options] [config file]
-
- The kbuild script is a convenient wrapper running the kbuild.sh script
- inside a Docker container.
-
- If no configuration file is passed as argument is given, it looks for a
- file named kbuild.cfg in curernt directory.
-
- OPTIONS:
-   -h             Show this help
-   -v             Show verbose output
-   -c CMD         Run custom command in Docker container
-   -i IMAGE       Use custom command in Docker container image
-   -s             Run interactive bash shell in Docker container
+kbuild [options] [config file]
 ```
+The kbuild script is a convenient wrapper running the kbuild.sh script
+inside a Docker container.
+
+If no configuration file is passed as argument is given, it looks for a
+file named kbuild.cfg in curernt directory.
+
+### OPTIONS:
+| -h           |  Show help
+| -v           |  Show verbose output
+| -c CMD       |  Run custom command in Docker container
+| -i IMAGE     |  Use custom command in Docker container image
+| -s           |  Run interactive bash shell in Docker container
 
 
 ## Example
