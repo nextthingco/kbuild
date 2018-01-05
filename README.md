@@ -85,11 +85,12 @@ If no configuration file is passed as argument is given, it looks for a
 file named kbuild.cfg in curernt directory.
 
 ### OPTIONS:
-| -h           |  Show help
-| -v           |  Show verbose output
-| -c CMD       |  Run custom command in Docker container
-| -i IMAGE     |  Use custom command in Docker container image
-| -s           |  Run interactive bash shell in Docker container
+| ------------ | ----------------------------------------------- |
+| -h           | Show help                                       |
+| -v           | Show verbose output                             |
+| -c CMD       | Run custom command in Docker container          |
+| -i IMAGE     | Use custom command in Docker container image    |
+| -s           | Run interactive bash shell in Docker container  |
 
 
 ## Example
