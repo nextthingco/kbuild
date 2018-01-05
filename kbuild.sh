@@ -1,5 +1,5 @@
 #!/bin/bash
-##===========================================================================
+##============================================================================
 #%
 #% USAGE: kbuild.sh [OPTIONS] COMMAND
 #%
@@ -8,22 +8,23 @@
 #%
 #%
 #% COMMANDS:
-#%   all              Builds everything specified in the CONFIG_FILE file
-#%   linux            Only build Linux Debian packages
-#%   rtl8723          Only build RTL8723 Wifi drivers packages
-#%   chip-mali        Only build Mali GPU drivers for C.H.I.P 
+#%   all                  Builds everything specified in the CONFIG_FILE file
+#%   linux                Only build Linux Debian packages
+#%   rtl8723              Only build RTL8723 Wifi drivers packages
+#%   chip-mali            Only build Mali GPU drivers for C.H.I.P 
 #%
-#%   linux-nconfig    Allows to modify the Linux configuration
+#%   linux-nconfig        Allows to modify the Linux configuration
+#%   linux-savedefconfig  Allows to modify the Linux configuration
 #%
 #%
 #% OPTIONS:
-#%   -h               Show this help
-#%   -v               Show verbose output
-#%   -c CONFIG_FILE   Use custom config file
+#%   -h                   Show this help
+#%   -v                   Show verbose output
+#%   -c CONFIG_FILE       Use custom config file
 #%
-##===========================================================================
+##============================================================================
 
-set -e
+set -ex
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -60,12 +61,12 @@ case "$1" in
     chip-mali)
         ;;
     all)
-        command="linux; rtl8723; mali"
+        command="linux; [[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip_mali"
         ;;
 
     linux-nconfig)
-        echo "ERROR: not implemented yet - sorry"
-        exit 1
+        ;;
+    linux-savedefconfig)
         ;;
 
     "")
@@ -115,7 +116,53 @@ if [[ ! -z "$PRIVATE_DEPLOY_KEY" ]]; then
    ssh-add <(echo "$PRIVATE_DEPLOY_KEY")
 fi
 
+function git_clone() {
+    local REPO=$1
+    local BRANCH=$2
+    local SRCDIR=$3
+
+    if [[ ! -d "${SRCDIR}" ]]; then 
+        git clone --branch ${BRANCH} --single-branch --depth 1 ${REPO} "${SRCDIR}" || return $?
+        pushd "${SRCDIR}"
+        git config user.email "${DEBEMAIL}" && \
+        git config user.name "${DEBFULLNAME}"
+        popd
+     fi
+}
+
 ## KERNEL
+function linux-nconfig() {
+    LINUX_FLAVOR="${LINUX_FLAVOR:?LINUX_FLAVOR not set}"
+      LINUX_DIST="${LINUX_DIST:?LINUX_DIST not set}"
+    LINUX_BRANCH="${LINUX_BRANCH:?LINUX_BRANCH not set}"
+      LINUX_REPO="${LINUX_REPO:?LINUX_REPO not set}"
+    LINUX_CONFIG="${LINUX_CONFIG:?LINUX_CONFIG not set}"
+
+    git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
+
+    echo huh
+    pushd "${LINUX_SRCDIR}"
+    [[ ! -f .config ]] && make $LINUX_CONFIG
+    make nconfig
+    popd
+}
+
+function linux-savedefconfig() {
+    LINUX_FLAVOR="${LINUX_FLAVOR:?LINUX_FLAVOR not set}"
+      LINUX_DIST="${LINUX_DIST:?LINUX_DIST not set}"
+    LINUX_BRANCH="${LINUX_BRANCH:?LINUX_BRANCH not set}"
+      LINUX_REPO="${LINUX_REPO:?LINUX_REPO not set}"
+    LINUX_CONFIG="${LINUX_CONFIG:?LINUX_CONFIG not set}"
+
+    git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
+
+    pushd "${LINUX_SRCDIR}"
+    [[ ! -f .config ]] && echo "ERROR: no .config to save"
+    make savedefconfig && cp -va defconfig arch/$ARCH/configs/$LINUX_CONFIG
+    popd
+ }
+
+
 function linux() {
     ## MANDATORY VARIABLES
     LINUX_FLAVOR="${LINUX_FLAVOR:?LINUX_FLAVOR not set}"
@@ -124,22 +171,19 @@ function linux() {
       LINUX_REPO="${LINUX_REPO:?LINUX_REPO not set}"
     LINUX_CONFIG="${LINUX_CONFIG:?LINUX_CONFIG not set}"
 
-    [[ ! -d "${LINUX_SRCDIR}" ]] && git clone --branch ${LINUX_BRANCH} --single-branch --depth 1 ${LINUX_REPO} "${LINUX_SRCDIR}"
+    git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
 
     pushd "${LINUX_SRCDIR}"
-    git clean -xfd .
-    #git checkout .
 
+    [[ ! -f .config ]] && make $LINUX_CONFIG
+    #git clean -xfd .
+    #git checkout .
 
     export KBUILD_DEBARCH=${ARCH}
     export KDEB_CHANGELOG_DIST=${LINUX_DIST}
     export LOCALVERSION=-${LINUX_FLAVOR}
     export KDEB_PKGVERSION=$(make kernelversion)-${BUILD_NUMBER}
 
-    git config user.email "${DEBEMAIL}"
-    git config user.name "${DEBFULLNAME}"
-
-    make ${LINUX_CONFIG}
 
     # remove -gGITREVISION from debian filename
     sed -i "s|CONFIG_LOCALVERSION_AUTO=.*|CONFIG_LOCALVERSION_AUTO=n|" .config
@@ -162,16 +206,13 @@ function rtl8723() {
     RTL8723_SRCDIR="$(echo ${RTL8723_REPO##*/} | tr '[:upper:]' '[:lower:]')"
 	RTL8723_SRCDIR="${RTL8723_SRCDIR:?RTL8723_SRCDIR not set}"
 
-    echo RTL8723_SRCDIR=$RTL8723_SRCDIR
-
-    [[ ! -d "${RTL8723_SRCDIR}" ]] && git clone --branch ${RTL8723_BRANCH} --single-branch --depth 1 ${RTL8723_REPO} "${RTL8723_SRCDIR}"
+    git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
+    [[ ! -f .config ]] && make $LINUX_CONFIG
+    git_clone $RTL8723_REPO $RTL8723_BRANCH $RTL8723_SRCDIR
 
     pushd $RTL8723_SRCDIR
-    git clean -xfd .
-    git checkout .
-
-    git config user.email "${DEBEMAIL}"
-    git config user.name "${DEBFULLNAME}"
+    #git clean -xfd .
+    #git checkout .
  
     [ ! -z $RTL8723_PATCHDIR ] && git am "$RTL8723_PATCHDIR"/*
 
@@ -213,8 +254,10 @@ function chip-mali() {
     CHIP_MALI_SRCDIR="$(echo ${CHIP_MALI_REPO##*/} | tr '[:upper:]' '[:lower:]')"
     CHIP_MALI_SRCDIR="${CHIP_MALI_SRCDIR:?CHIP_MALI_SRCDIR not set}"
 
-    [[ ! -d "${CHIP_MALI_SRCDIR}" ]] && git clone --branch ${CHIP_MALI_BRANCH} --single-branch --depth 1 ${CHIP_MALI_REPO} "${CHIP_MALI_SRCDIR}"
-
+    git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
+    [[ ! -f .config ]] && make $LINUX_CONFIG
+    git_clone $CHIP_MALI_REPO $CHIP_MALI_BRANCH $CHIP_MALI_SRCDIR
+ 
 	export MALI_SRC="$(pwd)/${CHIP_MALI_SRCDIR}/driver/src/devicedrv/mali"
 	export DEB_OUTPUT="$MALI_SRC/output"
 	export $(dpkg-architecture -a${DPKG_ARCH})
@@ -230,12 +273,5 @@ function chip-mali() {
     popd
 }
 
-
+echo "Running command $command"
 $command
-exit
-
-## BUILD !
-linux #linux is always build!
-[[ ! -z "$RTL8723_REPO" ]]   && rtl8723
-[[ ! -z "$CHIP_MALI_REPO" ]] && chip_mali
-

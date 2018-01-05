@@ -62,6 +62,8 @@ while getopts ":hvi:c:" opt; do
 done
 shift "$((OPTIND - 1))"
 
+export CONTAINER_IMAGE="${CONTAINER_IMAGE:-ntc-registry.githost.io/nextthingco/kbuild:unstable}"
+
 command="$1"
 case "$command" in
     linux-nconfig)
@@ -70,14 +72,14 @@ case "$command" in
         ;;
 
     shell)
-            CMD="${@}"
-            CMD="${CMD#* }"
-            CMD=${CMD:-"/bin/bash --login"}
+        CMD="${@}"
+        CMD="${CMD#* }"
+        CMD=${CMD:-"/bin/bash --login"}
         ;;
 
     update-image)
-        echo "ERROR: not implemented yet - sorry"
-        exit 1
+        docker pull $CONTAINER_IMAGE
+        exit $?
         ;;
 
     "")
@@ -89,9 +91,7 @@ case "$command" in
         ;;
 esac
 
-
 export CMD="${CMD:-kbuild.sh $VERBOSE_FLAG $CMDLINE_ARGS}"
-export CONTAINER_IMAGE="${CONTAINER_IMAGE:-ntc-registry.githost.io/nextthingco/kbuild:unstable}"
 
 export CI_JOB_ID=${RANDOM}
 
