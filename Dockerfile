@@ -1,6 +1,5 @@
 FROM debian:stretch
 
-ADD kbuild.sh /usr/bin/kbuild.sh
 RUN  \
 dpkg --add-architecture armhf && \
 dpkg --add-architecture arm64 && \
@@ -12,3 +11,4 @@ git vim wget && \
 wget https://releases.linaro.org/components/toolchain/binaries/4.9-2016.02/arm-linux-gnueabihf/gcc-linaro-4.9-2016.02-x86_64_arm-linux-gnueabihf.tar.xz -O- | tar -C /opt -xJ && \
 echo unpacking...
 ENV PATH="/opt/gcc-linaro-4.9-2016.02-x86_64_arm-linux-gnueabihf/bin:${PATH}"
+ADD kbuild.sh /usr/bin/kbuild.sh
