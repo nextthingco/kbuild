@@ -29,6 +29,12 @@ from this repository and put it in your executeable search PATH, e.g.:
 sudo wget https://ntc.githost.io/nextthingco/kbuild/raw/unstable/kbuild -O /usr/local/bin/kbuild
 ```
 
+When you run `kbuild` the first time on your system, it will pull the latest
+Docker container from the registry attached to this repository.
+The Docker container can also be manually built which is described below in
+the `Hacking` section.
+
+
 ## External kernel modules
 
 Currently the following external kernel modules are supported:
@@ -69,9 +75,26 @@ configuration file usually named `kconfig.cfg`.
 
 ## Usage
 
+```
+ USAGE: kbuild [options] [config file]
+
+ The kbuild script is a convenient wrapper running the kbuild.sh script
+ inside a Docker container.
+
+ If no configuration file is passed as argument is given, it looks for a
+ file named kbuild.cfg in curernt directory.
+
+ OPTIONS:
+   -h             Show this help
+   -v             Show verbose output
+   -c CMD         Run custom command in Docker container
+   -i IMAGE       Use custom command in Docker container image
+   -s             Run interactive bash shell in Docker container
+```
+
+
+## Example
+
 [...]
 
-
-## Example: 
-
-[...]
+# Hacking
