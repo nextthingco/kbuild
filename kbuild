@@ -18,6 +18,8 @@
 #%
 ##===========================================================================
 
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 [[ ! -x "$(which docker)" ]] && echo "ERROR: cannot find docker binay in path - please verify Docker installation" && exit 1
 
 CMD=kbuild.sh
@@ -25,7 +27,7 @@ CMD=kbuild.sh
 while getopts ":hvsc:" opt; do
     case $opt in
         h)
-            head -n 200 $(basename $0) | sed -n -e 's/^#%//gp;'
+            head -n 200 "$SCRIPT_DIR/$(basename $0)" | sed -n -e 's/^#%//gp;'
             exit
             ;;
         v)
@@ -46,7 +48,7 @@ done
 shift "$((OPTIND - 1))"
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export CONTAINER_IMAGE=${CONTAINER_IMAGE:-kbuild}
+export CONTAINER_IMAGE=${CONTAINER_IMAGE:-ntc-registry.githost.io/nextthingco/kbuild:unstable}
 
 export CI_JOB_ID=${RANDOM}
 
