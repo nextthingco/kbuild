@@ -12,12 +12,17 @@
 #% OPTIONS:
 #%   -h             Show this help
 #%   -v             Show verbose output
+#%   -c CMD         Run custom command in Docker container
+#%   -i IMAGE       Use custom command in Docker container image
+#%   -s             Run interactive bash shell in Docker container
 #%
 ##===========================================================================
 
 [[ ! -x "$(which docker)" ]] && echo "ERROR: cannot find docker binay in path - please verify Docker installation" && exit 1
 
-while getopts ":hvd:" opt; do
+CMD=kbuild.sh
+
+while getopts ":hvsc:" opt; do
     case $opt in
         h)
             head -n 200 $(basename $0) | sed -n -e 's/^#%//gp;'
@@ -26,11 +31,19 @@ while getopts ":hvd:" opt; do
         v)
             export VERBOSE_FLAG="-v"
             ;;
+        c)
+            CMD="${OPTARG}"
+            ;;
+        s)
+            CMD=""
+            ;;
+ 
         \?)
             echo "invalid option: -$OPTARG"
             ;;
     esac
 done
+shift "$((OPTIND - 1))"
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export CONTAINER_IMAGE=${CONTAINER_IMAGE:-kbuild}
@@ -53,6 +66,6 @@ docker run --rm -it \
            -v $PWD:/work -w /work \
            $CFG_FILE_FLAG \
            $VERBOSE_FLAG \
-           $CONTAINER_IMAGE kbuild.sh
+           $CONTAINER_IMAGE bash -c "$CMD"
 
 rm $TMP_CFG
