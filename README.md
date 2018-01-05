@@ -38,7 +38,7 @@ configuration file usually named `kconfig.cfg`
 
 ### Generic options
 
- - *ARCH*: e.g. `arm`
+ - _ARCH_: e.g. `arm`
  - `DPKG_ARCH`: e.g. `armhf`
  - `DEBFULLNAME`: Name / Company who builds the .deb packages
  - `DEBEMAIL`: Contact e-mail of the packager
