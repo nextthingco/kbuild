@@ -73,7 +73,8 @@ case "$command" in
 
     shell)
         CMD="${@}"
-        CMD="${CMD#* }"
+        CMD="${CMD#$command}"
+        CMD="${CMD# }"
         CMD=${CMD:-"/bin/bash --login"}
         ;;
 
