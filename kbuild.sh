@@ -1,6 +1,82 @@
 #!/bin/bash
+##===========================================================================
+#%
+#% USAGE: kbuild.sh [OPTIONS] COMMAND
+#%
+#% If no configuration file is specified, it looks for a file named
+#% kbuild.cfg in current directory.
+#%
+#%
+#% COMMANDS:
+#%   all              Builds everything specified in the CONFIG_FILE file
+#%   linux            Only build Linux Debian packages
+#%   rtl8723          Only build RTL8723 Wifi drivers packages
+#%   chip-mali        Only build Mali GPU drivers for C.H.I.P 
+#%
+#%   linux-nconfig    Allows to modify the Linux configuration
+#%
+#%
+#% OPTIONS:
+#%   -h               Show this help
+#%   -v               Show verbose output
+#%   -c CONFIG_FILE   Use custom config file
+#%
+##===========================================================================
 
 set -e
+
+export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+function help() {
+    head -n 200 "$SCRIPT_DIR/$(basename $0)" | sed -n -e 's/^#%//gp;'
+    exit
+}
+
+while getopts ":hvc:" opt; do
+    case $opt in
+        h)
+            help
+            ;;
+        v)
+            export VERBOSE_FLAG="-v"
+            ;;
+        c)
+            CONFIG_FILE="${OPTARG}"
+            ;;
+        \?)
+            echo "invalid option: -$OPTARG"
+            exit 1
+            ;;
+    esac
+done
+shift "$((OPTIND - 1))"
+
+command="$1"
+case "$1" in
+    linux)
+        ;;
+    rtl8723)
+        ;;
+    chip-mali)
+        ;;
+    all)
+        command="linux; rtl8723; mali"
+        ;;
+
+    linux-nconfig)
+        echo "ERROR: not implemented yet - sorry"
+        exit 1
+        ;;
+
+    "")
+        help
+        ;;
+
+    *)
+        echo "ERROR: unknown command '$command'"
+        exit 1
+        ;;
+esac
 
 function read_cfg_file() {
   local config_file="$1"
@@ -18,9 +94,9 @@ function read_cfg_file() {
 }
 
 # CONFIG_FILE either spacified as environment variable or as first command line parameter
-CONFIG_FILE=${CONFIG_FILE:-$1}
-[[ -z "${CONFIG_FILE}" ]] && [[ -f "kbuild.cfg" ]] && export CONFIG_FILE="kbuild.cfg"
-[[ ! -z "${CONFIG_FILE}" ]] && read_cfg_file "${CONFIG_FILE}"
+CONFIG_FILE=${CONFIG_FILE:-kbuild.cfg}
+[[ ! -f "kbuild.cfg" ]] && echo "ERROR: cannot find configuration file '$CONFIG_FILE'" && exit 1
+read_cfg_file "${CONFIG_FILE}"
 
 ## MANDATORY VARIABLES
 export          ARCH="${ARCH:?ARCH not set}"
@@ -52,7 +128,7 @@ function linux() {
 
     pushd "${LINUX_SRCDIR}"
     git clean -xfd .
-    git checkout .
+    #git checkout .
 
 
     export KBUILD_DEBARCH=${ARCH}
@@ -126,7 +202,7 @@ function rtl8723() {
 }
 
 ## chip_mali
-function chip_mali() {
+function chip-mali() {
 
     ## OPTIONAL VARIABLES
     
@@ -153,6 +229,10 @@ function chip_mali() {
 	mv ${DEB_OUTPUT}/*.deb ${LINUX_SRCDIR}/../
     popd
 }
+
+
+$command
+exit
 
 ## BUILD !
 linux #linux is always build!
