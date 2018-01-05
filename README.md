@@ -23,6 +23,11 @@ Make sure Docker is installed and in the search PATH - there is plenty of
 information how to do that on the internet, https://docs.docker.com is a good
 start.
 
+Installation of kbuild itself is easy. Just download the `kbuild` script
+from this repository and put it in your executeable search PATH, e.g.:
+```
+sudo wget https://ntc.githost.io/nextthingco/kbuild/raw/unstable/kbuild -O /usr/local/bin/kbuild
+```
 
 ## External kernel modules
 
