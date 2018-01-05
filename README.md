@@ -95,6 +95,28 @@ configuration file usually named `kconfig.cfg`.
 
 ## Example
 
-[...]
+The configuration for C.H.I.P using building Kernel 4.4.13, RTL8723BS Wifi drivers and Mali drivers:
+```
+### kbuild config for CHIP
+ARCH=arm
+DPKG_ARCH=armhf
+DEBFULLNAME="Next Thing Co."
+DEBEMAIL="software@nextthing.co"
+CROSS_COMPILE=arm-linux-gnueabihf-
+####
+LINUX_FLAVOR="chip"
+  LINUX_DIST="stretch"
+LINUX_BRANCH="debian/4.4.13-ntc-mlc"
+  LINUX_REPO="git://github.com/nextthingco/CHIP-linux"
+LINUX_CONFIG="multi_v7_defconfig"
+#####
+RTL8723_BRANCH="ja/8723-update"
+RTL8723_REPO="https://github.com/nextthingco/rtl8723bs"
+#### 
+CHIP_MALI_BRANCH="debian"
+CHIP_MALI_REPO="git://github.com/nextthingco/chip-mali"
+```
 
-# Hacking
+## Hacking 
+
+[...]
