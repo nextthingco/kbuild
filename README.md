@@ -38,7 +38,7 @@ configuration file usually named `kconfig.cfg`
 
 ### Generic options
 
- - `ARCH`: e.g. `arm`
+ - *ARCH*: e.g. `arm`
  - `DPKG_ARCH`: e.g. `armhf`
  - `DEBFULLNAME`: Name / Company who builds the .deb packages
  - `DEBEMAIL`: Contact e-mail of the packager
@@ -57,7 +57,7 @@ configuration file usually named `kconfig.cfg`
 
 ### MALI options
  - `CHIP_MALI_BRANCH`: e.g. `debian`
- - `CHIP_MALI_REPO=`: e.g. `git://github.com/nextthingco/chip-mali`
+ - `CHIP_MALI_REPO`: e.g. `git://github.com/nextthingco/chip-mali`
 
 
 ## Usage
