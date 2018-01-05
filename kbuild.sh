@@ -19,13 +19,9 @@ function read_cfg_file() {
 
 # CONFIG_FILE either spacified as environment variable or as first command line parameter
 CONFIG_FILE=${CONFIG_FILE:-$1}
-echo "CONFIG_FILE=$CONFIG_FILE"
-[[ -z "${CONFIG_FILE}" ]] && [[ -f "kbuild.cfg" ]] && echo huh!  && export CONFIG_FILE="kbuild.cfg"
+[[ -z "${CONFIG_FILE}" ]] && [[ -f "kbuild.cfg" ]] && export CONFIG_FILE="kbuild.cfg"
 [[ ! -z "${CONFIG_FILE}" ]] && read_cfg_file "${CONFIG_FILE}"
-echo "CONFIG_FILE=$CONFIG_FILE"
 
-## OPTIONAL VARIABLES
-# ...
 ## MANDATORY VARIABLES
 export          ARCH="${ARCH:?ARCH not set}"
 export     DKPG_ARCH="${DPKG_ARCH:?DKPG_ARCH not set}"
@@ -92,7 +88,7 @@ function rtl8723() {
 
     echo RTL8723_SRCDIR=$RTL8723_SRCDIR
 
-    [[ ! -d "${LINUX_SRCDIR}" ]] && git clone --branch ${RTL8723_BRANCH} --single-branch --depth 1 ${RTL8723_REPO} "${RTL8723_SRCDIR}"
+    [[ ! -d "${RTL8723_SRCDIR}" ]] && git clone --branch ${RTL8723_BRANCH} --single-branch --depth 1 ${RTL8723_REPO} "${RTL8723_SRCDIR}"
 
     pushd $RTL8723_SRCDIR
     git clean -xfd .
@@ -117,13 +113,9 @@ function rtl8723() {
 
     cp -a /usr/src/modules/${RTL8723_SRCDIR}-mp-driver/* $BUILDDIR
     pushd /usr/src
-    sudo tar -zcvf ${RTL8723_SRCDIR}-mp-driver.tar.gz modules/${RTL8723_SRCDIR}-mp-driver
+    tar -zcvf ${RTL8723_SRCDIR}-mp-driver.tar.gz modules/${RTL8723_SRCDIR}-mp-driver
     popd
 
-    echo m-a -t -u $BUILDDIR \
-        -l $KERNEL_VER \
-        -k $LINUX_SRCDIR \
-        build ${RTL8723_SRCDIR}-mp-driver-source
     m-a -t -u $BUILDDIR \
         -l $KERNEL_VER \
         -k $LINUX_SRCDIR \
@@ -145,7 +137,7 @@ function chip_mali() {
     CHIP_MALI_SRCDIR="$(echo ${CHIP_MALI_REPO##*/} | tr '[:upper:]' '[:lower:]')"
     CHIP_MALI_SRCDIR="${CHIP_MALI_SRCDIR:?CHIP_MALI_SRCDIR not set}"
 
-    git clone --branch ${CHIP_MALI_BRANCH} --single-branch --depth 1 ${CHIP_MALI_REPO} "${CHIP_MALI_SRCDIR}"
+    [[ ! -d "${CHIP_MALI_SRCDIR}" ]] && git clone --branch ${CHIP_MALI_BRANCH} --single-branch --depth 1 ${CHIP_MALI_REPO} "${CHIP_MALI_SRCDIR}"
 
 	export MALI_SRC="$(pwd)/${CHIP_MALI_SRCDIR}/driver/src/devicedrv/mali"
 	export DEB_OUTPUT="$MALI_SRC/output"
@@ -156,7 +148,7 @@ function chip_mali() {
 	mkdir -p $DEB_OUTPUT/usr_src
 	export MALI_VER=$(cd $MALI_SRC; dpkg-parsechangelog --show-field Version)
 	KDIR="$LINUX_SRCDIR" USING_UMP=0 dpkg-buildpackage -A -uc -us -nc
-	sudo dpkg -i $MALI_SRC/../chip-mali-source_${MALI_VER}_all.deb
+	dpkg -i $MALI_SRC/../chip-mali-source_${MALI_VER}_all.deb
 	m-a -t -u $DEB_OUTPUT -l $KERNEL_VER -k $LINUX_SRCDIR build chip-mali-source
 	mv ${DEB_OUTPUT}/*.deb ${LINUX_SRCDIR}/../
     popd
