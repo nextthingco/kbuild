@@ -33,6 +33,25 @@
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+export LOCAL_BUILDDIR=src # must be relative path
+export DOCKER_VOLUME=kbuild_local_builddir
+export USE_DOCKER_VOLUME="-v $DOCKER_VOLUME:/work/$LOCAL_BUILDDIR"
+uname="$(uname -s)"
+case "${uname}" in
+    Linux*)
+		mkdir -p "${LOCAL_BUILDDIR}"
+		echo "Running natively on Linux, good!"
+		export USE_DOCKER_VOLUME=""
+		;;
+    Darwin*) ;;
+    CYGWIN*) ;;
+    MINGW*) ;;
+    *)
+		echo "ERROR: Building on $uname is currently not supported - sorry!"
+		exit 1
+		;;
+esac
+
 [[ ! -x "$(which docker)" ]] && \
     echo "ERROR: cannot find docker binay in path - please verify Docker installation" && 
     exit 1
@@ -108,13 +127,14 @@ cp "$CONFIG_FILE" "$TMP_CFG"
 CFG_FILE_FLAG="-v $(cd "$(dirname "$TMP_CFG")"; pwd)/$(basename "$TMP_CFG"):/work/kbuild.cfg"
 
 #docker pull $CONTAINER_IMAGE
+[[ ! -z "${DOCKER_VOLME}" ]] && docker volume inspect "${DOCKER_VOLUME}" 2>/dev/null >/dev/null || docker volume create --name "${DOCKER_VOLUME}"
 docker run --rm -it \
            -e PRIVATE_DEPLOY_KEY="${PRIVATE_DEPLOY_KEY}"  \
            -e CI_JOB_ID="${CI_JOB_ID}" \
            -v $SCRIPT_DIR:/opt/kbuild \
            -v $PWD:/work -w /work \
-             -e LOCAL_BUILDDIR=/work/src \
-             -v kbuild_local_builddir:/work/src \
+             -e LOCAL_BUILDDIR=/work/$LOCAL_BUILDDIR \
+             $USE_DOCKER_VOLUME \
            $CFG_FILE_FLAG \
            $CONTAINER_IMAGE $CMD
 
