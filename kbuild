@@ -11,12 +11,13 @@
 #%
 #%
 #% COMMANDS:
-#%   all              Builds everything specified in the CONFIG_FILE file
-#%   linux            Only build Linux Debian packages
-#%   rtl8723          Only build RTL8723 Wifi drivers packages
-#%   chip-mali        Only build Mali GPU drivers for C.H.I.P 
+#%   all                  Builds everything specified in the CONFIG_FILE file
+#%   linux                Only build Linux Debian packages
+#%   rtl8723              Only build RTL8723 Wifi drivers packages
+#%   chip-mali            Only build Mali GPU drivers for C.H.I.P 
 #%
-#%   linux-nconfig    Allows to modify the Linux configuration
+#%   linux-nconfig        Allows to modify the Linux configuration
+#%   linux-savedefconfig  Save Linux defconfig
 #%
 #%   shell <CMD>      Run interactive bash shell in Docker container
 #%   update-image     Tries to pull the lates version of the Docker image
@@ -32,7 +33,9 @@
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-[[ ! -x "$(which docker)" ]] && echo "ERROR: cannot find docker binay in path - please verify Docker installation" && exit 1
+[[ ! -x "$(which docker)" ]] && \
+    echo "ERROR: cannot find docker binay in path - please verify Docker installation" && 
+    exit 1
 
 function help() {
     head -n 200 "$SCRIPT_DIR/$(basename $0)" | sed -n -e 's/^#%//gp;'
@@ -92,7 +95,8 @@ case "$command" in
         ;;
 esac
 
-export CMD="${CMD:-kbuild.sh $VERBOSE_FLAG $CMDLINE_ARGS}"
+echo "WARNING: DO NOT PUSH THIS"
+export CMD="${CMD:-./kbuild.sh $VERBOSE_FLAG $CMDLINE_ARGS}"
 
 export CI_JOB_ID=${RANDOM}
 
@@ -109,6 +113,8 @@ docker run --rm -it \
            -e CI_JOB_ID="${CI_JOB_ID}" \
            -v $SCRIPT_DIR:/opt/kbuild \
            -v $PWD:/work -w /work \
+             -e LOCAL_BUILDDIR=/work/src \
+             -v kbuild_local_builddir:/work/src \
            $CFG_FILE_FLAG \
            $CONTAINER_IMAGE $CMD
 

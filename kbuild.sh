@@ -14,8 +14,7 @@
 #%   chip-mali            Only build Mali GPU drivers for C.H.I.P 
 #%
 #%   linux-nconfig        Allows to modify the Linux configuration
-#%   linux-savedefconfig  Allows to modify the Linux configuration
-#%
+#%   linux-savedefconfig  Save Linux defconfig
 #%
 #% OPTIONS:
 #%   -h                   Show this help
@@ -52,33 +51,6 @@ while getopts ":hvc:" opt; do
 done
 shift "$((OPTIND - 1))"
 
-command="$1"
-case "$1" in
-    linux)
-        ;;
-    rtl8723)
-        ;;
-    chip-mali)
-        ;;
-    all)
-        command="linux; [[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip_mali"
-        ;;
-
-    linux-nconfig)
-        ;;
-    linux-savedefconfig)
-        ;;
-
-    "")
-        help
-        ;;
-
-    *)
-        echo "ERROR: unknown command '$command'"
-        exit 1
-        ;;
-esac
-
 function read_cfg_file() {
   local config_file="$1"
   
@@ -99,6 +71,35 @@ CONFIG_FILE=${CONFIG_FILE:-kbuild.cfg}
 [[ ! -f "kbuild.cfg" ]] && echo "ERROR: cannot find configuration file '$CONFIG_FILE'" && exit 1
 read_cfg_file "${CONFIG_FILE}"
 
+command="$1"
+case "$1" in
+    linux)
+        ;;
+    rtl8723)
+        ;;
+    chip-mali)
+        ;;
+    all)
+        #command="linux; [[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali"
+        command="[[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali"
+        ;;
+
+    linux-nconfig)
+        ;;
+    linux-savedefconfig)
+        ;;
+
+    "")
+        help
+        ;;
+
+    *)
+        echo "ERROR: unknown command '$command'"
+        exit 1
+        ;;
+esac
+
+
 ## MANDATORY VARIABLES
 export          ARCH="${ARCH:?ARCH not set}"
 export     DKPG_ARCH="${DPKG_ARCH:?DKPG_ARCH not set}"
@@ -109,7 +110,8 @@ export      DEBEMAIL="${DEBEMAIL:?DEBEMAIL not set}"
 export      BUILD_NUMBER="${CI_JOB_ID:-666}"
 export CONCURRENCY_LEVEL=$(( $(nproc) * 2 ))
 export   GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no}"
-export LINUX_SRCDIR="${LINUX_SRCDIR:-$PWD/linux}"
+export LOCAL_BUILDDIR="${LOCAL_BUILDDIR:-$PWD/build}"
+export LINUX_SRCDIR="${LINUX_SRCDIR:-$LOCAL_BUILDDIR/linux}"
     
 if [[ ! -z "$PRIVATE_DEPLOY_KEY" ]]; then
    eval $(ssh-agent -s)
@@ -192,6 +194,7 @@ function linux() {
     make -j${CONCURRENCY_LEVEL} deb-pkg
 
     popd
+    mv *.deb "${LOCAL_BUILDDIR}/.."
 }
 
 ## RTL
@@ -203,11 +206,13 @@ function rtl8723() {
 		RTL8723_BRANCH="${RTL8723_BRANCH:?RTL8723_BRANCH not set}"
 		  RTL8723_REPO="${RTL8723_REPO:?RTL8723_REPO not set}"
    
-    RTL8723_SRCDIR="$(echo ${RTL8723_REPO##*/} | tr '[:upper:]' '[:lower:]')"
+    RTL8723_VARIANT="$(echo ${RTL8723_REPO##*/} | tr '[:upper:]' '[:lower:]')"
+    RTL8723_SRCDIR="$LOCAL_BUILDDIR/$RTL8723_VARIANT"
 	RTL8723_SRCDIR="${RTL8723_SRCDIR:?RTL8723_SRCDIR not set}"
+    echo "RTL8723_SRCDIR=$RTL8723_SRCDIR"
 
     git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
-    [[ ! -f .config ]] && make $LINUX_CONFIG
+    pushd $LINUX_SRCDIR; [[ ! -f .config ]] && make $LINUX_CONFIG; popd
     git_clone $RTL8723_REPO $RTL8723_BRANCH $RTL8723_SRCDIR
 
     pushd $RTL8723_SRCDIR
@@ -224,21 +229,23 @@ function rtl8723() {
     export KERNEL_VER=$(cd $LINUX_SRCDIR; make kernelversion)
 
     dpkg-buildpackage -A -uc -us -nc
-    sudo dpkg -i ../${RTL8723_SRCDIR}-mp-driver-source_${RTL_VER}_all.deb
+    echo PWD=$PWD
+    dpkg -i ../${RTL8723_VARIANT}-mp-driver-source_${RTL_VER}_all.deb
 
     mkdir -p $BUILDDIR/usr_src
 
-    cp -a /usr/src/modules/${RTL8723_SRCDIR}-mp-driver/* $BUILDDIR
+    cp -a /usr/src/modules/${RTL8723_VARIANT}-mp-driver/* $BUILDDIR
     pushd /usr/src
-    tar -zcvf ${RTL8723_SRCDIR}-mp-driver.tar.gz modules/${RTL8723_SRCDIR}-mp-driver
+    tar -zcvf ${RTL8723_VARIANT}-mp-driver.tar.gz modules/${RTL8723_VARIANT}-mp-driver
     popd
 
     m-a -t -u $BUILDDIR \
         -l $KERNEL_VER \
         -k $LINUX_SRCDIR \
-        build ${RTL8723_SRCDIR}-mp-driver-source
+        build ${RTL8723_VARIANT}-mp-driver-source
      
-    mv $BUILDDIR/*.deb ../
+    mv $BUILDDIR/*.deb "$LOCAL_BUILDDIR/.."
+    mv $LOCAL_BUILDDIR/*.deb "$LOCAL_BUILDDIR/.."
     popd
 }
 
@@ -251,14 +258,14 @@ function chip-mali() {
 		CHIP_MALI_BRANCH="${CHIP_MALI_BRANCH:?CHIP_MALI_BRANCH not set}"
 		  CHIP_MALI_REPO="${CHIP_MALI_REPO:?CHIP_MALI_REPO not set}"
 
-    CHIP_MALI_SRCDIR="$(echo ${CHIP_MALI_REPO##*/} | tr '[:upper:]' '[:lower:]')"
+    CHIP_MALI_SRCDIR="${LOCAL_BUILDDIR}/$(echo ${CHIP_MALI_REPO##*/} | tr '[:upper:]' '[:lower:]')"
     CHIP_MALI_SRCDIR="${CHIP_MALI_SRCDIR:?CHIP_MALI_SRCDIR not set}"
 
     git_clone $LINUX_REPO $LINUX_BRANCH $LINUX_SRCDIR
-    [[ ! -f .config ]] && make $LINUX_CONFIG
+    pushd $LINUX_SRCDIR; [[ ! -f .config ]] && make $LINUX_CONFIG; popd
     git_clone $CHIP_MALI_REPO $CHIP_MALI_BRANCH $CHIP_MALI_SRCDIR
  
-	export MALI_SRC="$(pwd)/${CHIP_MALI_SRCDIR}/driver/src/devicedrv/mali"
+	export MALI_SRC="${CHIP_MALI_SRCDIR}/driver/src/devicedrv/mali"
 	export DEB_OUTPUT="$MALI_SRC/output"
 	export $(dpkg-architecture -a${DPKG_ARCH})
 	export KERNEL_VER=$(cd $LINUX_SRCDIR; make kernelversion)
@@ -269,9 +276,9 @@ function chip-mali() {
 	KDIR="$LINUX_SRCDIR" USING_UMP=0 dpkg-buildpackage -A -uc -us -nc
 	dpkg -i $MALI_SRC/../chip-mali-source_${MALI_VER}_all.deb
 	m-a -t -u $DEB_OUTPUT -l $KERNEL_VER -k $LINUX_SRCDIR build chip-mali-source
-	mv ${DEB_OUTPUT}/*.deb ${LINUX_SRCDIR}/../
+	mv ${DEB_OUTPUT}/*.deb "$LOCAL_BUILDDIR/.."
     popd
 }
 
 echo "Running command $command"
-$command
+eval "$command"
