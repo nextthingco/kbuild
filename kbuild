@@ -114,8 +114,7 @@ case "$command" in
         ;;
 esac
 
-echo "WARNING: DO NOT PUSH THIS"
-export CMD="${CMD:-./kbuild.sh $VERBOSE_FLAG $CMDLINE_ARGS}"
+export CMD="${CMD:-kbuild.sh $VERBOSE_FLAG $CMDLINE_ARGS}"
 
 export CI_JOB_ID=${RANDOM}
 

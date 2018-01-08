@@ -80,8 +80,7 @@ case "$1" in
     chip-mali)
         ;;
     all)
-        #command="linux; [[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali"
-        command="[[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali"
+        command="linux; [[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali"
         ;;
 
     linux-nconfig)
@@ -186,7 +185,6 @@ function linux() {
     export LOCALVERSION=-${LINUX_FLAVOR}
     export KDEB_PKGVERSION=$(make kernelversion)-${BUILD_NUMBER}
 
-
     # remove -gGITREVISION from debian filename
     sed -i "s|CONFIG_LOCALVERSION_AUTO=.*|CONFIG_LOCALVERSION_AUTO=n|" .config
 
@@ -194,7 +192,7 @@ function linux() {
     make -j${CONCURRENCY_LEVEL} deb-pkg
 
     popd
-    mv *.deb "${LOCAL_BUILDDIR}/.."
+    mv "${LOCAL_BUILDDIR}/"*.deb "${LOCAL_BUILDDIR}/.."
 }
 
 ## RTL
