@@ -73,20 +73,13 @@ read_cfg_file "${CONFIG_FILE}"
 
 command="$1"
 case "$1" in
-    linux)
-        ;;
-    rtl8723)
-        ;;
-    chip-mali)
-        ;;
-    all)
-        command="linux; [[ ! -z "$RTL8723_REPO" ]] && rtl8723; [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali"
-        ;;
+    linux) ;;
+    rtl8723) ;;
+    chip-mali) ;;
+    all) ;;
 
-    linux-nconfig)
-        ;;
-    linux-savedefconfig)
-        ;;
+    linux-nconfig) ;;
+    linux-savedefconfig) ;;
 
     "")
         help
@@ -116,6 +109,12 @@ if [[ ! -z "$PRIVATE_DEPLOY_KEY" ]]; then
    eval $(ssh-agent -s)
    ssh-add <(echo "$PRIVATE_DEPLOY_KEY")
 fi
+
+function all() {
+    linux
+    [[ ! -z "$RTL8723_REPO" ]] && rtl8723
+    [[ ! -z "$CHIP_MALI_REPO" ]] && chip-mali
+}
 
 function git_clone() {
     local REPO=$1
@@ -241,9 +240,11 @@ function rtl8723() {
         -l $KERNEL_VER \
         -k $LINUX_SRCDIR \
         build ${RTL8723_VARIANT}-mp-driver-source
-     
-    mv $BUILDDIR/*.deb "$LOCAL_BUILDDIR/.."
-    mv $LOCAL_BUILDDIR/*.deb "$LOCAL_BUILDDIR/.."
+
+    # for some reason, if .deb files are mv'ed, the next build fails
+    # unless it's a clean build from scratch - that's why we cp here     
+    cp $BUILDDIR/*.deb "$LOCAL_BUILDDIR/.."
+    cp $LOCAL_BUILDDIR/*.deb "$LOCAL_BUILDDIR/.."
     popd
 }
 
@@ -279,4 +280,4 @@ function chip-mali() {
 }
 
 echo "Running command $command"
-eval "$command"
+$command
