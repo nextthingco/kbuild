@@ -15,3 +15,5 @@ wget https://releases.linaro.org/components/toolchain/binaries/4.9-2016.02/arm-l
 echo unpacking...
 ENV PATH="/opt/gcc-linaro-4.9-2016.02-x86_64_arm-linux-gnueabihf/bin:${PATH}"
 ADD kbuild.sh /usr/bin/kbuild.sh
+ADD sudoers /etc/sudoers
+RUN chown root:root /etc/sudoers

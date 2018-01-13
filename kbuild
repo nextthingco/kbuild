@@ -121,10 +121,13 @@ export CI_JOB_ID=${RANDOM}
 #docker pull $CONTAINER_IMAGE
 [[ ! -z "${DOCKER_VOLME}" ]] && ( docker volume inspect "${DOCKER_VOLUME}" 2>/dev/null >/dev/null || docker volume create --name "${DOCKER_VOLUME}" )
 docker run --rm -it \
+           -v /etc/passwd:/etc/passwd:ro \
+           -v /etc/group:/etc/group:ro \
            -e PRIVATE_DEPLOY_KEY="${PRIVATE_DEPLOY_KEY}"  \
            -e CI_JOB_ID="${CI_JOB_ID}" \
            -v $SCRIPT_DIR:/opt/kbuild \
            -v $PWD:/work -w /work \
            -e LOCAL_BUILDDIR=/work/$LOCAL_BUILDDIR \
+           -u $(id  -u):$(id -g) \
            $USE_DOCKER_VOLUME \
            $CONTAINER_IMAGE $CMD
