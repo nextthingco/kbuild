@@ -35,6 +35,55 @@ The Docker container can also be manually built which is described below in
 the `Hacking` section.
 
 
+## Quickstart
+
+So you want to build your own Linux kernel packages for Debian?
+The following will walk you through building a customized kernel for C.H.I.P.
+
+### Step 1: Initialize
+```
+mkdir my_kernel
+cd my_kernel
+kbuild init chip
+```
+
+This will create the following files in the `my_kernel` directory:
+```
+kbuild.cfg
+multi_v7_defconfig
+src/linux
+```
+
+### Step 2: Change Kernel configuration
+Let's add some feature in the kernel configuration:
+```
+kbuild linux-nconfig
+```
+
+### Step 3: Build, all of it!
+```
+kbuild all
+```
+After step 3 is completed you'll find a bunch of `.deb` packages in `my_kernel`:
+```
+linux-firmware-image-4.4.13-chip_4.4.13-25836_arm.deb
+linux-headers-4.4.13-chip_4.4.13-25836_arm.deb
+linux-image-4.4.13-chip_4.4.13-25836_arm.deb
+linux-libc-dev_4.4.13-25836_arm.deb
+rtl8723bs-mp-driver-common_4.4.2-25836.20160519-BTCOEX20151223-654a-ntc-1_all.deb
+rtl8723bs-mp-driver-dkms_4.4.2-25836.20160519-BTCOEX20151223-654a-ntc-1_all.deb
+rtl8723bs-mp-driver-modules-4.4.13-chip_4.4.2-25836.20160519-BTCOEX20151223-654a-ntc-1+4.4.13-25836_all.deb
+rtl8723bs-mp-driver-source_4.4.2-25836.20160519-BTCOEX20151223-654a-ntc-1_all.deb
+chip-mali-modules-4.4.13-chip_1.0-0-ntc-0+4.4.13-25836.deb
+```
+Copy and install them onto your C.H.I.P!
+
+### Step 4: Save defconfig
+If you want to save the changes you've made into a new defconfig:
+```
+kbuild linux-savedefconfig
+```
+
 ## External kernel modules
 
 Currently the following external kernel modules are supported:
@@ -76,25 +125,37 @@ configuration file usually named `kconfig.cfg`.
 ## Usage
 
 ```
-kbuild [options] [config file]
+ kbuild [OPTIONS] COMMAND
 ```
+
 The kbuild script is a convenient wrapper running the kbuild.sh script
 inside a Docker container.
 
-If no configuration file is passed as argument is given, it looks for a
-file named kbuild.cfg in curernt directory.
+If no configuration file is specified, it looks for a file named
+kbuild.cfg in current directory.
 
-### OPTIONS:
-| Option       | Description                                     |
-| ------------ | ----------------------------------------------- |
-| -h           | Show help                                       |
-| -v           | Show verbose output                             |
-| -c CMD       | Run custom command in Docker container          |
-| -i IMAGE     | Use custom command in Docker container image    |
-| -s           | Run interactive bash shell in Docker container  |
+```
+COMMANDS:
+  all                  Builds everything specified in the kbuild.cfg
+  linux                Only build Linux Debian packages
+  rtl8723              Only build RTL8723 Wifi drivers packages
+  chip-mali            Only build Mali GPU drivers for C.H.I.P
+
+  linux-nconfig        Allows to modify the Linux configuration
+  linux-savedefconfig  Save Linux defconfig
+
+  shell <CMD>          Run interactive bash shell in Docker container
+  update-image         Tries to pull the lates version of the Docker image
 
 
-## Example
+OPTIONS:
+  -h               Show this help
+  -v               Show verbose output
+  -i IMAGE         Use custom command in Docker container image
+```
+
+
+## Configuration files
 
 The configuration for C.H.I.P using building Kernel 4.4.13, RTL8723BS Wifi drivers and Mali drivers:
 ```
