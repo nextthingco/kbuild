@@ -11,7 +11,7 @@
 #%
 #%
 #% COMMANDS:
-#%   all                  Builds everything specified in the CONFIG_FILE file
+#%   all                  Builds everything specified in the kbuild.cfg
 #%   linux                Only build Linux Debian packages
 #%   rtl8723              Only build RTL8723 Wifi drivers packages
 #%   chip-mali            Only build Mali GPU drivers for C.H.I.P 
@@ -26,7 +26,6 @@
 #% OPTIONS:
 #%   -h               Show this help
 #%   -v               Show verbose output
-#%   -c CONFIG_FILE   Use custom config file
 #%   -i IMAGE         Use custom command in Docker container image
 #%
 ##===========================================================================
@@ -61,16 +60,13 @@ function help() {
     exit
 }
 
-while getopts ":hvi:c:" opt; do
+while getopts ":hvi:" opt; do
     case $opt in
         h)
             help
             ;;
         v)
             export VERBOSE_FLAG="-v"
-            ;;
-        c)
-            CONFIG_FILE="${OPTARG}"
             ;;
         i)
             CONTAINER_IMAGE="${OPTARG}"
@@ -88,6 +84,10 @@ export CONTAINER_IMAGE="${CONTAINER_IMAGE:-ntc-registry.githost.io/nextthingco/k
 
 command="$1"
 case "$command" in
+    init)
+        CMDLINE_ARGS="$command $2"
+        ;;
+
     linux-nconfig)
         ### do something special here!
         CMDLINE_ARGS="$command"
@@ -118,23 +118,13 @@ export CMD="${CMD:-kbuild.sh $VERBOSE_FLAG $CMDLINE_ARGS}"
 
 export CI_JOB_ID=${RANDOM}
 
-# CONFIG_FILE either spacified as environment variable or as first command line parameter
-CONFIG_FILE=${CONFIG_FILE:-kbuild.cfg}
-[[ ! -f "$CONFIG_FILE" ]] && echo "ERROR: cannot find configuration file '$CONFIG_FILE'" && exit 1
-TMP_CFG="$PWD/.tmp.$RANDOM.kbuild.cfg"
-cp "$CONFIG_FILE" "$TMP_CFG"
-CFG_FILE_FLAG="-v $(cd "$(dirname "$TMP_CFG")"; pwd)/$(basename "$TMP_CFG"):/work/kbuild.cfg"
-
 #docker pull $CONTAINER_IMAGE
-[[ ! -z "${DOCKER_VOLME}" ]] && docker volume inspect "${DOCKER_VOLUME}" 2>/dev/null >/dev/null || docker volume create --name "${DOCKER_VOLUME}"
+[[ ! -z "${DOCKER_VOLME}" ]] && ( docker volume inspect "${DOCKER_VOLUME}" 2>/dev/null >/dev/null || docker volume create --name "${DOCKER_VOLUME}" )
 docker run --rm -it \
            -e PRIVATE_DEPLOY_KEY="${PRIVATE_DEPLOY_KEY}"  \
            -e CI_JOB_ID="${CI_JOB_ID}" \
            -v $SCRIPT_DIR:/opt/kbuild \
            -v $PWD:/work -w /work \
-             -e LOCAL_BUILDDIR=/work/$LOCAL_BUILDDIR \
-             $USE_DOCKER_VOLUME \
-           $CFG_FILE_FLAG \
+           -e LOCAL_BUILDDIR=/work/$LOCAL_BUILDDIR \
+           $USE_DOCKER_VOLUME \
            $CONTAINER_IMAGE $CMD
-
-rm $TMP_CFG

@@ -8,22 +8,25 @@
 #%
 #%
 #% COMMANDS:
+#%   init BOARDNAME       Creates a kbuild.cfg file in the current directory.
+#%                        BOARDNAME can be CHIP or CHIPPRO.
+#%
 #%   all                  Builds everything specified in the CONFIG_FILE file
 #%   linux                Only build Linux Debian packages
 #%   rtl8723              Only build RTL8723 Wifi drivers packages
 #%   chip-mali            Only build Mali GPU drivers for C.H.I.P 
 #%
-#%   linux-nconfig        Allows to modify the Linux configuration
-#%   linux-savedefconfig  Save Linux defconfig
+#%   linux-nconfig        Make local changes the Linux configuration
+#%   linux-defconfig      Apply defconfig (reset local changes).
+#%   linux-savedefconfig  Save local changes to Linux configuration.
 #%
 #% OPTIONS:
 #%   -h                   Show this help
 #%   -v                   Show verbose output
-#%   -c CONFIG_FILE       Use custom config file
 #%
 ##============================================================================
 
-set -ex
+set -e
 
 export SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -32,16 +35,13 @@ function help() {
     exit
 }
 
-while getopts ":hvc:" opt; do
+while getopts ":hv" opt; do
     case $opt in
         h)
             help
             ;;
         v)
             export VERBOSE_FLAG="-v"
-            ;;
-        c)
-            CONFIG_FILE="${OPTARG}"
             ;;
         \?)
             echo "invalid option: -$OPTARG"
@@ -66,9 +66,49 @@ function read_cfg_file() {
   fi
 }
 
-# CONFIG_FILE either spacified as environment variable or as first command line parameter
-CONFIG_FILE=${CONFIG_FILE:-kbuild.cfg}
-[[ ! -f "kbuild.cfg" ]] && echo "ERROR: cannot find configuration file '$CONFIG_FILE'" && exit 1
+CONFIG_FILE="kbuild.cfg"
+
+if [[ "$1" == "init" ]]; then
+    [[ -f "$CONFIG_FILE" ]] && echo "ERROR: '$CONFIG_FILE' already exists" && exit 1
+    board="$2"
+
+    case "$board" in
+        "")
+            echo "ERROR: no boardname specified."
+			exit -1
+            ;;
+        "chip")
+			cat >"$CONFIG_FILE" <<EOF
+### kbuild config for CHIP\n
+ARCH=arm\n
+DPKG_ARCH=armhf\n
+DEBFULLNAME="Next Thing Co."\n
+DEBEMAIL="software@nextthing.co"\n
+CROSS_COMPILE=arm-linux-gnueabihf-
+####
+LINUX_FLAVOR="chip"
+  LINUX_DIST="stretch"
+LINUX_BRANCH="debian/4.4.13-ntc-mlc"
+  LINUX_REPO="git://github.com/nextthingco/CHIP-linux"
+LINUX_CONFIG="multi_v7_defconfig"
+#####
+RTL8723_BRANCH="ja/8723-update"
+RTL8723_REPO="https://github.com/nextthingco/rtl8723bs"
+#### 
+CHIP_MALI_BRANCH="debian"
+CHIP_MALI_REPO="git://github.com/nextthingco/chip-mali"
+EOF
+            exit 0
+            ;;
+        *)
+            echo "ERROR: unknown board '$board'."
+			return -1
+            ;;
+    esac
+fi
+
+
+[[ ! -f "${CONFIG_FILE}" ]] && echo "ERROR: cannot find configuration file '$CONFIG_FILE'" && exit 1
 read_cfg_file "${CONFIG_FILE}"
 
 command="$1"
@@ -226,7 +266,6 @@ function rtl8723() {
     export KERNEL_VER=$(cd $LINUX_SRCDIR; make kernelversion)
 
     dpkg-buildpackage -A -uc -us -nc
-    echo PWD=$PWD
     dpkg -i ../${RTL8723_VARIANT}-mp-driver-source_${RTL_VER}_all.deb
 
     mkdir -p $BUILDDIR/usr_src
